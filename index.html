@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tv Streamz</title>
+
+  <!-- External CSS -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+  <link href="https://vjs.zencdn.net/7.15.4/video-js.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+  <script src="https://vjs.zencdn.net/7.15.4/video.js"></script>
+
+  <style>
+    body {
+      background-color: #f0f2f5;
+      font-family: 'Arial', sans-serif;
+    }
+
+    .header {
+      background-color: #2C3E50;
+      color: white;
+      padding: 15px 30px;
+      box-shadow: 0px 2px 10px rgba(0, 0, 0, 0.1);
+    }
+
+    .header .logo {
+      font-size: 28px;
+      font-weight: bold;
+    }
+
+    .header .search-bar {
+      max-width: 400px;
+      border-radius: 25px;
+      padding: 8px 15px;
+      border: 1px solid #ccc;
+      box-shadow: 0px 0px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .category-list, .channel-list {
+      max-height: 513px;
+      overflow-y: auto;
+      overflow-x: hidden;
+      border-radius: 8px;
+      padding-right: 10px; /* Prevent overlap of scrollbar */
+    }
+    .channel-list {
+      max-height: 505px;
+      overflow-y: auto;
+      overflow-x: hidden;
+      border-radius: 8px;
+      padding-right: 10px; /* Prevent overlap of scrollbar */
+    }
+
+    .category-list::-webkit-scrollbar,
+    .channel-list::-webkit-scrollbar {
+      width: 5px;
+    }
+
+    .category-list::-webkit-scrollbar-track,
+    .channel-list::-webkit-scrollbar-track {
+      background: #f0f2f5;
+    }
+
+    .category-list::-webkit-scrollbar-thumb,
+    .channel-list::-webkit-scrollbar-thumb {
+      background: #3498db;
+      border-radius: 5px;
+    }
+
+    .category-list::-webkit-scrollbar-thumb:hover,
+    .channel-list::-webkit-scrollbar-thumb:hover {
+      background: #2980b9;
+    }
+
+    .category-list li, .channel-list li {
+      background-color: #fff;
+      border: 1px solid #ddd;
+      margin-bottom: 8px;
+      padding: 12px;
+      border-radius: 8px;
+      transition: all 0.3s ease;
+    }
+
+    /* Active Category */
+    .category-list li.active {
+      background-color: #3498db;
+      color: white;
+    }
+
+    .category-list li:hover,
+    .channel-list li:hover {
+      background-color: #3498db;
+      color: white;
+      cursor: pointer;
+      transform: translateX(5px);
+    }
+
+    /* Channel Style when Played */
+    .channel-list li.played {
+      background-color: #2980b9;
+      color: white;
+    }
+
+    .player {
+      background-color: black;
+      height: 500px;
+      border-radius: 8px;
+      box-shadow: 0px 0px 15px rgba(0, 0, 0, 0.5);
+      overflow: hidden;
+      position: relative;
+    }
+
+    .player h5 {
+      color: white;
+      text-align: center;
+      margin-top: 15px;
+    }
+
+    .file-upload {
+      margin-top: 20px;
+      text-align: center;
+    }
+
+    .file-upload input[type="file"] {
+      background-color: #3498db;
+      color: white;
+      padding: 12px 25px;
+      border: none;
+      border-radius: 25px;
+      cursor: pointer;
+      box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.2);
+    }
+
+    .file-upload input[type="file"]:hover {
+      background-color: #2980b9;
+    }
+
+    .file-upload input[type="file"]:focus {
+      outline: none;
+      box-shadow: 0px 0px 10px rgba(52, 152, 219, 0.6);
+    }
+
+    .remove-file-btn {
+      background-color: #e74c3c;
+      color: white;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      box-shadow: 0px 0px 5px rgba(0, 0, 0, 0.2);
+      margin-left: 10px;
+    }
+
+    .remove-file-btn:hover {
+      background-color: #c0392b;
+    }
+
+    .remove-file-btn:focus {
+      outline: none;
+    }
+
+     /* Favorite Icon */
+     .fav-icon {
+      cursor: pointer;
+      margin-left: auto;
+      font-size: 1.5em;
+      color: grey;
+      transition: color 0.3s, transform 0.2s;
+    }
+
+    .fav-icon.fav {
+      color: red;
+      transform: scale(1.3);
+    }
+
+    .fav-icon:hover {
+      transform: scale(1.4);
+    }
+
+    /* Footer Style */
+    footer {
+      position: fixed;
+      bottom: 0;
+      width: 100%;
+      text-align: center;
+      font-size: 1rem;
+      background-color: #2C3E50;
+      color: white;
+      padding: 15px 30px;
+      box-shadow: 0px 2px 10px rgba(0, 0, 0, 0.1);
+    }
+
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <div class="header d-flex justify-content-between align-items-center">
+    <div class="logo">Tv Streamz</div>
+    <input type="text" class="form-control search-bar" placeholder="Search channels..." id="search">
+  </div>
+
+  <div class="container mt-4">
+    <div class="row">
+      <!-- Category List -->
+      <div class="col-md-3">
+        <h5 class="text-primary">Categories</h5>
+        <ul class="list-group category-list" id="category-list"></ul>
+      </div>
+
+      <!-- Channel List -->
+      <div class="col-md-3">
+        <h5 class="text-primary">Channels</h5>
+        <ul class="list-group channel-list" id="channel-list"></ul>
+      </div>
+
+      <!-- Video Player -->
+      <div class="col-md-6">
+        <h5 class="text-primary">Now Playing</h5>
+        <div id="player" class="player rounded" style="position: relative;">
+          <!-- Default to Video Tag but fallback to Audio if necessary -->
+          <video id="videoPlayer" class="video-js vjs-default-skin" controls autoplay style="width: 100%; height: 100%; display: block;">
+            <source id="videoSource" type="application/x-mpegURL">
+          </video>
+          <audio id="audioPlayer" controls style="width: 100%; height: 100%; display: none;">
+            <source id="audioSource" type="audio/mp3">
+          </audio>
+          <!-- Quality Display -->
+          <div id="videoStats" style="position: absolute; top: 10px; left: 10px; color: white; background: gray; padding: 5px; border-radius: 5px; font-size: 14px;">
+            Quality: <span id="videoQuality">0x0</span>
+          </div>
+        </div>
+      </div>      
+    </div>
+  </div>
+    <!-- Footer -->
+    <footer>
+      &copy; 2025 Channel Player. All rights reserved.
+    </footer>
+
+  <script>
+    const m3uFileUrl = "https://dl.dropboxusercontent.com/scl/fi/gjhu0k6ps4h1eqw1mwulv/bikash-iptv.m3u?rlkey=09na9nd4u54a3qjjtzg1m5dyc&st=b49j98o5&dl=0";
+    const categories = new Set();
+    const channels = [];
+    const favorites = new Set();
+    const recentlyPlayed = [];
+    let currentlyPlayingChannel = null; // To track the current played channel
+
+    // Fetch and parse the M3U file on page load
+    window.addEventListener("load", async function () {
+      try {
+        const response = await fetch(m3uFileUrl);
+        if (!response.ok) throw new Error(`Failed to fetch M3U file: ${response.statusText}`);
+        const data = await response.text();
+        parseM3U(data);
+      } catch (error) {
+        console.error("Error fetching M3U file:", error);
+      }
+    });
+
+    // Parse M3U content
+    function parseM3U(data) {
+      const lines = data.split("\n");
+      let currentCategory = "Uncategorized";
+
+      lines.forEach((line, index) => {
+        if (line.startsWith("#EXTINF")) {
+          const categoryMatch = line.match(/group-title="(.*?)"/);
+          if (categoryMatch) currentCategory = categoryMatch[1];
+
+          const logoMatch = line.match(/tvg-logo="(.*?)"/);
+          const logo = logoMatch ? logoMatch[1] : "";
+
+          const nameMatch = line.match(/,([^,]+)$/);
+          const name = nameMatch ? nameMatch[1].trim() : "Unknown Channel";
+
+          const url = lines[index + 1]?.trim(); // URL is on the next line
+          if (url && url.startsWith("http")) {
+            categories.add(currentCategory);
+            channels.push({ name, category: currentCategory, url, logo });
+          }
+        }
+      });
+
+      renderCategories(); // Render categories after parsing
+    }
+
+    // Render categories
+    function renderCategories() {
+      const categoryList = document.getElementById("category-list");
+      categoryList.innerHTML = "";
+
+      // Add the Recently Played category
+      const recentlyPlayedCategory = document.createElement("li");
+      recentlyPlayedCategory.className = "list-group-item";
+      recentlyPlayedCategory.textContent = "RECENTLY PLAYED";
+      recentlyPlayedCategory.onclick = () => {
+        renderChannels(recentlyPlayed);
+        // Make the category active
+        document.querySelectorAll('.category-list li').forEach(item => item.classList.remove('active'));
+        recentlyPlayedCategory.classList.add('active');
+      };
+      categoryList.appendChild(recentlyPlayedCategory);
+
+      // Add the Favorites category
+      const favoriteCategory = document.createElement("li");
+      favoriteCategory.className = "list-group-item";
+      favoriteCategory.textContent = "FAVORITES";
+      favoriteCategory.onclick = () => {
+        renderChannels(Array.from(favorites));
+        // Make the category active
+        document.querySelectorAll('.category-list li').forEach(item => item.classList.remove('active'));
+        favoriteCategory.classList.add('active');
+      };
+      categoryList.appendChild(favoriteCategory);
+
+      // Add the regular categories
+      categories.forEach((category) => {
+        const li = document.createElement("li");
+        li.className = "list-group-item";
+        li.textContent = category;
+        li.onclick = () => filterChannels(category, li);
+        categoryList.appendChild(li);
+
+        // Automatically select 'INDIAN | ENTERTAINMENT' as default
+        if (category === 'INDIAN | ENTERTAINMENT') {
+          li.classList.add('active');
+          filterChannels(category, li); // Render channels for the default category
+        }
+      });
+    }
+
+    // Render channels
+    function renderChannels(filteredChannels) {
+      const channelList = document.getElementById("channel-list");
+      channelList.innerHTML = "";
+
+      filteredChannels.forEach((channel) => {
+        const li = document.createElement("li");
+        li.className = "list-group-item d-flex align-items-center";
+        li.innerHTML = `<img src="${channel.logo}" alt="Logo" style="width: 55px; height: 45px; margin-right: 10px;"> ${channel.name}`;
+        
+        const favIcon = document.createElement("span");
+        favIcon.className = "fav-icon";
+        favIcon.innerHTML = "&#9829;"; // Heart icon
+        if (favorites.has(channel)) {
+          favIcon.classList.add("fav");
+        }
+        favIcon.onclick = (event) => {
+          event.stopPropagation(); // Prevent triggering playChannel
+          toggleFavorite(channel, favIcon);
+        };
+        
+        li.onclick = () => playChannel(channel, li);
+        li.appendChild(favIcon);
+        channelList.appendChild(li);
+      });
+    }
+
+    // Filter channels by category
+    function filterChannels(category, li) {
+      // Deactivate all categories
+      document.querySelectorAll('.category-list li').forEach(item => item.classList.remove('active'));
+
+      // Activate the selected category
+      li.classList.add('active');
+      
+      // Filter channels based on category
+      const filteredChannels = channels.filter((channel) => channel.category === category);
+      renderChannels(filteredChannels);
+    }
+
+    // Toggle favorite status
+    function toggleFavorite(channel, favIcon) {
+      if (favorites.has(channel)) {
+        favorites.delete(channel); // Remove from favorites
+        favIcon.classList.remove("fav");
+      } else {
+        favorites.add(channel); // Add to favorites
+        favIcon.classList.add("fav");
+      }
+
+      // Animation for heart icon change
+      favIcon.style.transform = "scale(1.5)";
+      setTimeout(() => {
+        favIcon.style.transform = "scale(1)";
+      }, 300);
+    }
+
+
+    
+    // Play selected channel
+    function playChannel(channel, li) {
+      // Remove 'played' class from the previously played channel
+      if (currentlyPlayingChannel && currentlyPlayingChannel !== li) {
+        currentlyPlayingChannel.classList.remove("played");
+      }
+
+      // Mark as played
+      li.classList.add("played");
+      currentlyPlayingChannel = li; // Track the current played channel
+
+      if (!recentlyPlayed.includes(channel)) {
+        recentlyPlayed.push(channel);
+      }
+
+      const player = document.getElementById("player");
+
+      // Determine if it's a video or audio stream
+      const videoPlayer = document.getElementById("videoPlayer");
+      const audioPlayer = document.getElementById("audioPlayer");
+      const videoSource = document.getElementById("videoSource");
+      const audioSource = document.getElementById("audioSource");
+
+      if (channel.url.includes(".m3u8")) { // Check if it's an HLS stream
+        // Hide audio player and show video player
+        audioPlayer.style.display = "none";
+        videoPlayer.style.display = "block";
+
+        // Set the video source
+        videoSource.src = channel.url;
+        const hls = new Hls();
+
+        // If the browser supports HLS.js (i.e., Chrome), initialize the stream
+        if (Hls.isSupported()) {
+          hls.loadSource(channel.url);
+          hls.attachMedia(videoPlayer);
+
+          hls.on(Hls.Events.MANIFEST_PARSED, function() {
+            // Log codec info for debugging
+            console.log("HLS Manifest Parsed", hls.manifest);
+          });
+
+          hls.on(Hls.Events.ERROR, function(event, data) {
+            console.error("HLS Error", data);
+            // Handle specific errors such as codec not supported
+          });
+        } else if (videoPlayer.canPlayType('application/vnd.apple.mpegurl')) {
+          // Fallback to native HLS support in browsers like Safari
+          videoPlayer.src = channel.url;
+        }
+      } else { // Handle as audio stream
+        // Hide video player and show audio player
+        videoPlayer.style.display = "none";
+        audioPlayer.style.display = "block";
+
+        // Set audio source
+        audioSource.src = channel.url;
+        audioPlayer.play();
+      }
+    }
+
+    // Save favorites to localStorage
+    function saveFavorites() {
+      localStorage.setItem("favorites", JSON.stringify(Array.from(favorites)));
+    }
+
+    // Save recently played to localStorage
+    function saveRecentlyPlayed() {
+      localStorage.setItem("recentlyPlayed", JSON.stringify(recentlyPlayed));
+    }
+
+    // Save favorites on change
+    window.addEventListener('beforeunload', () => {
+      saveFavorites();
+      saveRecentlyPlayed();
+    });
+
+// To calulate and set Video Quality -Start
+    const videoPlayer = document.getElementById("videoPlayer");
+    const videoQuality = document.getElementById("videoQuality");
+    const videoBitrate = document.getElementById("videoBitrate");
+    const videoFPS = document.getElementById("videoFPS");
+
+    let lastTime = 0; // To calculate FPS
+    let frameCount = 0; // Track frames per second
+
+    function updateVideoStats() {
+      // Update Quality (Resolution)
+      if (videoPlayer.videoWidth && videoPlayer.videoHeight) {
+        videoQuality.textContent = `${videoPlayer.videoWidth}x${videoPlayer.videoHeight}`;
+      }
+
+      // Keep updating stats
+      requestAnimationFrame(updateVideoStats);
+    }
+
+    // Start tracking stats when the video plays
+    videoPlayer.addEventListener("play", () => {
+      updateVideoStats();
+    });
+
+    // Stop stats tracking when the video is paused
+    videoPlayer.addEventListener("pause", () => {
+      videoFPS.textContent = "0";
+      frameCount = 0;
+    });
+
+    // Clear stats when the video ends
+    videoPlayer.addEventListener("ended", () => {
+      videoQuality.textContent = "0x0";
+    });
+// To calulate and set Video Quality -End
+
+  </script>
+</body>
+</html>
